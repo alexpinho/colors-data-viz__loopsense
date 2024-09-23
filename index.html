@@ -13,7 +13,7 @@
     <div class="filters">
         <div style="display: flex; flex-direction: column;">
             <label for="variation-count"> Number of Variations</label>
-            <input type="number" id="variation-count" data-color-target="variationInput" min="2">
+            <input type="number" id="variation-count" data-color-target="variationInput" value="0">
         </div>
         <div style="display: flex; flex-direction: column;">
             <label for="variation-type"> Variation Type</label>
@@ -23,6 +23,9 @@
                 <option value="multiHue"> Multi-Hue </option>
                 <option value="saturation"> Saturation </option>
             </select>
+        </div>
+        <div style="display: flex; flex-direction: column;">
+            <input type="color" value="#000000">
         </div>
         <button type="button" style="cursor:pointer" data-action="click->color#updateColors">Submit</button>
     </div>

@@ -17,7 +17,7 @@ application.register("color", class extends Stimulus.Controller {
             { hex: '#EF5675', deviceType: 'Mesh/Repeater' },
             { hex: '#FFA600', deviceType: 'Mesh/Gateway' },
         ];
-        this.numberOfVariations = parseInt(this.variationInputTarget.value) || 2; 
+        this.numberOfVariations = parseInt(this.variationInputTarget.value); 
         this.variationTypeTarget.value;
         this.displayColors();
     }
