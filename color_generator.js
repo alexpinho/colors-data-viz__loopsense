@@ -9,21 +9,25 @@ application.register("color", class extends Stimulus.Controller {
 
     connect() {
         // Array of objects containing the base hex codes and their associated device types.
-        this.baseColors = [
-            { hex: '#2171B5', deviceType: 'Pressure Controller' }, //#003F5C
-            { hex: '#016C59', deviceType: 'Sensor' }, //#016C59
-            { hex: '#7A5195', deviceType: 'Pumping Station' },
-            { hex: '#BC5090', deviceType: 'Flow meter' },
-            { hex: '#EF5675', deviceType: 'Mesh/Repeater' },
-            { hex: '#FFA600', deviceType: 'Mesh/Gateway' },
-        ];
-        this.numberOfVariations = parseInt(this.variationInputTarget.value); 
-        this.variationTypeTarget.value;
+        //Initialize only once
+        if (!this.hasInitialized){
+            this.baseColors = [
+                { hex: '#2171B5', deviceType: 'Pressure Controller' }, //#003F5C
+                { hex: '#016C59', deviceType: 'Sensor' }, //#016C59
+                { hex: '#7A5195', deviceType: 'Pumping Station' },
+                { hex: '#BC5090', deviceType: 'Flow meter' },
+                { hex: '#EF5675', deviceType: 'Mesh/Repeater' },
+                { hex: '#FFA600', deviceType: 'Mesh/Gateway' },
+            ];
+            this.hasInitialized = true;
+        }
+        this.numberOfVariations = parseInt(this.variationInputTarget.value) || 50; 
+        this.variationMethod = this.variationTypeTarget.value;
         this.displayColors();
     }
 
     updateColors(){
-        this.numberOfVariations = parseInt(this.variationInputTarget.value);
+        this.numberOfVariations = parseInt(this.variationInputTarget.value) || 0;
         this.variationMethod = this.variationTypeTarget.value;
         this.containerTarget.innerHTML = '';
         this.displayColors();
@@ -31,44 +35,72 @@ application.register("color", class extends Stimulus.Controller {
 
     // Display colors on the page
     displayColors() {
-        this.baseColors.forEach((baseColor) => {
+        this.baseColors.forEach((baseColor, index) => {
             const deviceSection = document.createElement('div');
             deviceSection.classList.add('device-section');
 
             const deviceTitle = document.createElement('div');
             deviceTitle.classList.add('device-title');
             deviceTitle.textContent = baseColor.deviceType;
+
+            //Color input field
+            const colorInput = document.createElement('input');
+            colorInput.type = 'color';
+            colorInput.value = baseColor.hex;
+            colorInput.dataset.index = index; //Store for reference
+            deviceTitle.appendChild(colorInput);
+
+            //Update base color when input changes
+            colorInput.addEventListener('input', (event) => {
+                const newColor = event.target.value;
+                const idx = event.target.dataset.index;
+                //Update base color in array
+                this.baseColors[idx].hex = newColor;
+                //Re-display the colors of device type
+                this.updateDeviceSection(deviceSection, this.baseColors[idx]);
+            })
             deviceSection.appendChild(deviceTitle);
 
-            const colorGrid = document.createElement('div');
-            colorGrid.classList.add('color-grid');
+            // Initial rendering of color grid
+            this.updateDeviceSection(deviceSection, baseColor);
 
-            let colors = [];
-            if (this.variationMethod === 'lightness') {
-                colors = this.generateColorLightnessVariations(baseColor.hex, this.numberOfVariations);
-            } else if (this.variationMethod === 'hue') {
-                colors = this.generateColorHueVariations(baseColor.hex, this.numberOfVariations);
-            } else if (this.variationMethod === 'multiHue') {
-                colors = this.generateColorMultiHueVariations(baseColor.hex, this.numberOfVariations);
-            } else if (this.variationMethod == 'saturation') {
-                colors = this.generateColorSaturationVariations(baseColor.hex, this.numberOfVariations);
-            }
-
-            colors.forEach(color => {
-                const colorBox = document.createElement('div');
-                colorBox.classList.add('color-box');
-                colorBox.style.backgroundColor = color;
-                //colorBox.textContent = color;
-
-                // Adjust text color for better readability
-                const hsl = this.hexToHSL(color);
-                colorBox.style.color = hsl.l > 50 ? '#000' : '#fff';
-                colorGrid.appendChild(colorBox);
-            });
-
-            deviceSection.appendChild(colorGrid);
             this.containerTarget.appendChild(deviceSection);
         });
+    }
+
+    updateDeviceSection(deviceSection, baseColor) {
+        // Remove existing color grid if any
+        const existingGrid = deviceSection.querySelector('.color-grid');
+        if (existingGrid) {
+            existingGrid.remove();
+        }
+
+        const colorGrid = document.createElement('div');
+        colorGrid.classList.add('color-grid');
+
+        let colors = [];
+        if (this.variationMethod === 'lightness') {
+            colors = this.generateColorLightnessVariations(baseColor.hex, this.numberOfVariations);
+        } else if (this.variationMethod === 'hue') {
+            colors = this.generateColorHueVariations(baseColor.hex, this.numberOfVariations);
+        } else if (this.variationMethod === 'multiHue') {
+            colors = this.generateColorMultiHueVariations(baseColor.hex, this.numberOfVariations);
+        } else if (this.variationMethod === 'saturation') {
+            colors = this.generateColorSaturationVariations(baseColor.hex, this.numberOfVariations);
+        }
+
+        colors.forEach(color => {
+            const colorBox = document.createElement('div');
+            colorBox.classList.add('color-box');
+            colorBox.style.backgroundColor = color;
+
+            // Adjust text color for better readability
+            const hsl = this.hexToHSL(color);
+            colorBox.style.color = hsl.l > 50 ? '#000' : '#fff';
+            colorGrid.appendChild(colorBox);
+        });
+
+        deviceSection.appendChild(colorGrid);
     }
 
 
@@ -131,14 +163,24 @@ application.register("color", class extends Stimulus.Controller {
         const hsl = this.hexToHSL(baseHex);
         const colors = [];
         const startSaturation = hsl.s;
-        const endSaturation = (hsl.s + 20) % 100;
-        const saturationIncrement = (endSaturation - startSaturation) / (count - 1);
+        const endSaturation = (hsl.s + 2) % 100;
+        const saturationIncrement = (endSaturation - startSaturation) / (count-1); 
+        const hueRange = 60; 
+        const startHue = hsl.h;
+        const endHue = (hsl.h + hueRange) % 360;
+        let hueIncrement;
 
+        if (endHue >= startHue) {
+            hueIncrement = (endHue - startHue) / (count-1);
+        } else {
+            hueIncrement = ((360 - startHue) + endHue) / (count-1);
+        }
         
         //Loop to assign new color for each variation
         for (let i = 0; i < count; i++) {
-            const newSaturation = startSaturation + i * saturationIncrement;
-            const newHex = this.hslToHex(hsl.h, newSaturation, hsl.l);
+            let newHue = (startHue + i * hueIncrement) % 360;
+            let newSaturation = startSaturation + i * saturationIncrement;
+            const newHex = this.hslToHex(newHue, newSaturation, hsl.l);
             colors.push(newHex);
         }
         return colors;

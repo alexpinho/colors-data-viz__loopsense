@@ -43,3 +43,8 @@ body {
     flex-direction: row;
     gap: 2rem;
 }
+
+.device-title{
+    display: flex;
+    flex-direction: column;
+}
